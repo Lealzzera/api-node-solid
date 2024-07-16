@@ -1,14 +1,28 @@
 import { expect, it, describe, beforeEach, afterEach, vi } from "vitest";
 import { InMemoryCheckInsRepository } from "@/repositories/in-memory/in-memory-check-ins-repository";
 import { CheckInUseCase } from "./check-in";
+import { InMemoryGymsRepository } from "@/repositories/in-memory/in-memory-gyms-repository";
+import { Decimal } from "@prisma/client/runtime/library";
 
 let checkInsRepository: InMemoryCheckInsRepository;
+let gymsRepository: InMemoryGymsRepository;
 let sut: CheckInUseCase;
 
 describe("Check-in Use Case Tests", () => {
   beforeEach(() => {
     checkInsRepository = new InMemoryCheckInsRepository();
-    sut = new CheckInUseCase(checkInsRepository);
+    gymsRepository = new InMemoryGymsRepository();
+    sut = new CheckInUseCase(checkInsRepository, gymsRepository);
+
+    gymsRepository.inMemoryRegisters.push({
+      id: "gym-01",
+      title: "JavaScript gym",
+      description: "",
+      phone: "",
+      latitude: new Decimal(0),
+      longitude: new Decimal(0),
+      created_at: new Date(),
+    });
 
     vi.useFakeTimers();
   });
@@ -18,14 +32,12 @@ describe("Check-in Use Case Tests", () => {
   });
 
   it("It should be able to check in", async () => {
-    vi.setSystemTime(new Date(2023, 0, 20, 8, 37, 15));
-
     const { checkIn } = await sut.exec({
       gymId: "gym-01",
       userId: "user-01",
+      userLatitude: 0,
+      userLongitude: 0,
     });
-
-    console.log(checkIn.created_at);
 
     expect(checkIn?.id).toEqual(expect.any(String));
   });
@@ -36,12 +48,16 @@ describe("Check-in Use Case Tests", () => {
     await sut.exec({
       gymId: "gym-01",
       userId: "user-01",
+      userLatitude: 0,
+      userLongitude: 0,
     });
 
     await expect(() =>
       sut.exec({
         gymId: "gym-01",
         userId: "user-01",
+        userLatitude: 0,
+        userLongitude: 0,
       })
     ).rejects.toBeInstanceOf(Error);
   });
@@ -52,6 +68,8 @@ describe("Check-in Use Case Tests", () => {
     await sut.exec({
       gymId: "gym-01",
       userId: "user-01",
+      userLatitude: 0,
+      userLongitude: 0,
     });
 
     vi.setSystemTime(new Date(2023, 0, 21, 8, 37, 15));
@@ -59,8 +77,31 @@ describe("Check-in Use Case Tests", () => {
     const { checkIn } = await sut.exec({
       gymId: "gym-01",
       userId: "user-01",
+      userLatitude: 0,
+      userLongitude: 0,
     });
 
     expect(checkIn.id).toEqual(expect.any(String));
+  });
+
+  it("It should not be able to check in on distant gym", async () => {
+    gymsRepository.inMemoryRegisters.push({
+      id: "gym-02",
+      title: "JavaScript gym",
+      description: "",
+      phone: "",
+      latitude: new Decimal(-27.0747279),
+      longitude: new Decimal(-49.4889672),
+      created_at: new Date(),
+    });
+
+    await expect(() =>
+      sut.exec({
+        gymId: "gym-01",
+        userId: "user-01",
+        userLatitude: -27.2092052,
+        userLongitude: -49.6401091,
+      })
+    ).rejects.toBeInstanceOf(Error);
   });
 });
