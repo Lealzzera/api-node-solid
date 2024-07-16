@@ -1,4 +1,4 @@
-import { Prisma, Gym } from "@prisma/client";
+import { Prisma, Gym, CheckIn } from "@prisma/client";
 
 export interface GymsRepository {
   findById(id: string): Promise<Gym | null>;
