@@ -1,7 +1,8 @@
 import { InMemoryCheckInsRepository } from "@/repositories/in-memory/in-memory-check-ins-repository";
 import { ValidateCheckInUseCase } from "./validate-check-in";
-import { it, beforeEach, describe, expect } from "vitest";
+import { it, beforeEach, describe, expect, vi } from "vitest";
 import { ResourceNotFoundError } from "./errors/resource-not-found-error";
+import { LateCheckInValidationError } from "./errors/late-check-in-validation-error";
 
 let checkInRepository: InMemoryCheckInsRepository;
 let sut: ValidateCheckInUseCase;
@@ -29,5 +30,20 @@ describe("Validate check-in use case tests", () => {
     await expect(() =>
       sut.exec({ checkInId: "inexistent-id" })
     ).rejects.toBeInstanceOf(ResourceNotFoundError);
+  });
+
+  it("should not be able to validate a check-in after 20 minutes of its creation", async () => {
+    vi.setSystemTime(new Date(2024, 6, 10, 8, 10));
+    const createdCheckIn = await checkInRepository.create({
+      gym_id: "gym-01",
+      user_id: "user-01",
+    });
+
+    const twentyOneMinutesAdvancedInMiliseconds = 1000 * 60 * 21;
+    vi.setSystemTime(new Date(2024, 6, 10, 8, 31));
+
+    await expect(() =>
+      sut.exec({ checkInId: createdCheckIn.id })
+    ).rejects.toBeInstanceOf(LateCheckInValidationError);
   });
 });
