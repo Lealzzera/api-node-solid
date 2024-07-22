@@ -14,5 +14,5 @@ export async function search(request: FastifyRequest, reply: FastifyReply) {
 
   const searchGymResponse = await searchGymUseCase.exec({ query: q, page });
 
-  return reply.status(201).send(searchGymResponse);
+  return reply.status(200).send(searchGymResponse);
 }
