@@ -1,6 +1,5 @@
 import { Prisma, CheckIn } from "@prisma/client";
 import { ChekcInsRepository } from "../check-ins-repository";
-import { randomUUID } from "crypto";
 import { prisma } from "@/lib/prisma";
 import dayjs from "dayjs";
 
@@ -44,9 +43,10 @@ export class PrismaCheckInsRepository implements ChekcInsRepository {
   async countByUserId(userId: string) {
     const count = await prisma.checkIn.count({
       where: {
-        id: userId,
+        user_id: userId,
       },
     });
+
     return count;
   }
   async save(checkIn: CheckIn) {
