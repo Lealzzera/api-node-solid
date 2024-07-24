@@ -4,35 +4,23 @@ import { FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 
 export async function refresh(request: FastifyRequest, reply: FastifyReply) {
-  const authenticateBodySchema = z.object({
-    email: z.string().email(),
-    password: z.string().min(6),
-  });
-  const { email, password } = authenticateBodySchema.parse(request.body);
-  try {
-    const authenticateUseCase = makeAuthenticateUseCase();
-    const { user } = await authenticateUseCase.exec({ email, password });
+  await request.jwtVerify({ onlyCookie: true });
 
-    const token = await reply.jwtSign({}, { sign: { sub: user?.id } });
+  const { role } = request.user.role;
+  const token = await reply.jwtSign({}, { sign: { sub: request.user.sub } });
 
-    const refreshToken = await reply.jwtSign(
-      {},
-      { sign: { sub: user?.id, expiresIn: "7d" } }
-    );
+  const refreshToken = await reply.jwtSign(
+    { role },
+    { sign: { sub: request.user.sub, expiresIn: "7d" } }
+  );
 
-    return reply
-      .setCookie("refreshToken", refreshToken, {
-        path: "/",
-        secure: true,
-        sameSite: true,
-        httpOnly: true,
-      })
-      .status(200)
-      .send({ token });
-  } catch (err) {
-    if (err instanceof InvalidCredentialsError) {
-      return reply.status(400).send({ message: err.message });
-    }
-    throw err;
-  }
+  return reply
+    .setCookie("refreshToken", refreshToken, {
+      path: "/",
+      secure: true,
+      sameSite: true,
+      httpOnly: true,
+    })
+    .status(200)
+    .send({ token });
 }

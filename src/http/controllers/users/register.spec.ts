@@ -11,9 +11,11 @@ describe("Register e2e test", () => {
     await app.close();
   });
   it("It should be able to register", async () => {
-    const response = await request(app.server)
-      .post("/users")
-      .send({ name: "John Doe", email: "john@acme.com", password: "test1234" });
+    const response = await request(app.server).post("/users").send({
+      name: "John Doe",
+      email: "john@acme.com",
+      password: "test1234",
+    });
 
     expect(response.statusCode).toEqual(201);
   });
